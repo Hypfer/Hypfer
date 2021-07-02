@@ -7,7 +7,7 @@ Furthermore, I strongly value FOSS, right to repair and the right to use stuff y
 
 Therefore, this account contains a growing list of projects to uncloud various IoT things as well as other Smarthome stuff
 
-Note that my aim is to help people help themselves by providing the necessary tools to do so.<br/>
+Note that my aim is to help people help themselves by providing the necessary tools and documentation to do so.<br/>
 I am not here to help you personally, although that might happen occasionally if the request is interesting and/or something isn't easy to find via google/documentation/the code.
 
 When asking me things, it may therefore happen that you don't get the answer you want or no answer at all.<br/>
