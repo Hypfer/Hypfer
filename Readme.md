@@ -4,7 +4,7 @@
 > Politeness is not a substitute for emotional intelligence.
 > 
 > Politeness can be RLHF'd into a bunch of matrices full of floats.<br/>
-> Emotional intelligence requires humanity.
+> True emotional intelligence requires humanity.
 >
 > Use the humanity you've been gifted before an LLM replaces you.
 
