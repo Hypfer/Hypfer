@@ -2,7 +2,7 @@
 <br/>
 
 > Politeness is not a substitute for emotional intelligence.
-> 
+>
 > Politeness can be RLHF'd into a bunch of matrices full of floats.<br/>
 > True emotional intelligence requires humanity.
 >
@@ -20,3 +20,5 @@
 > \- [Byrne Hobart](https://www.thediff.co/p/working-in-public-and-the-economics)
 
 </details>
+
+If you're looking for a more conventional "about me" page, look here: [./About.md](./About.md)
