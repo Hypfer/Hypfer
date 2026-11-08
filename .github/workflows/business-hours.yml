@@ -1,0 +1,92 @@
+name: Business hours
+
+on:
+  schedule:
+    - cron: "0 17 * * 5"
+    - cron: "0 7 * * 1"
+    - cron: "0 */8 * * *"
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  reconcile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      GH_TOKEN: ${{ secrets.BUSINESS_HOURS_PAT }}
+      LIMIT: collaborators_only
+    steps:
+      - name: Ensure business hours
+        run: |
+          set -euo pipefail
+          : "${LIMIT:?must be set in the workflow env block}"
+
+          now=$(date -u +%s)
+          REF=$(date -u -d "2026-11-06 17:00 UTC" +%s)
+          WEEK=604800
+          start=$(( REF + (now - REF) / WEEK * WEEK ))
+          end=$(( start + 62 * 3600 ))
+          ceiling=$(( end + 12 * 3600 ))
+          fmt() { date -u -d "@$1" '+%Y-%m-%dT%H:%M:%SZ'; }
+
+          if ! current=$(gh api user/interaction-limits); then
+            echo "::error::GET user/interaction-limits failed - aborting without changes."
+            exit 1
+          fi
+          if [[ "$(jq 'keys | length' <<<"$current")" == "0" ]]; then
+            current=""
+          fi
+
+          if (( now >= start && now < end )); then
+            echo "In window ($(fmt "$start") .. $(fmt "$end"))."
+
+            if [[ -n "$current" ]]; then
+              expires_at=$(jq -r '.expires_at // empty' <<<"$current")
+              if [[ -z "$expires_at" ]]; then
+                echo "::error::Unexpected payload (no expires_at): $current"
+                exit 1
+              fi
+              expires=$(date -u -d "$expires_at" +%s)
+              if (( expires >= end )); then
+                echo "Current limit $(jq -r '.limit // "?"' <<<"$current") (origin: $(jq -r '.origin // "?"' <<<"$current")) already covers until $expires_at. Doing nothing."
+                exit 0
+              fi
+              echo "Current limit falls short of the window end ($expires_at) - topping up."
+            fi
+
+            pick=""
+            for cand in one_day:86400 three_days:259200 one_week:604800 one_month:2592000 six_months:15552000; do
+              if (( now + ${cand##*:} >= end )); then pick="${cand%%:*}"; break; fi
+            done
+
+            echo "Setting limit=$LIMIT expiry=$pick ..."
+            gh api --method PUT user/interaction-limits -f limit="$LIMIT" -f expiry="$pick" \
+              | jq -r '"Active until " + .expires_at + " (origin: " + .origin + ")"'
+          else
+            echo "Out of window (next window starts $(fmt "$(( start + WEEK ))"))."
+
+            if [[ -z "$current" ]]; then
+              echo "No limit active. Doing nothing."
+              exit 0
+            fi
+
+            limit=$(jq -r '.limit // empty' <<<"$current")
+            origin=$(jq -r '.origin // empty' <<<"$current")
+            expires_at=$(jq -r '.expires_at // empty' <<<"$current")
+            if [[ -z "$limit" || -z "$expires_at" ]]; then
+              echo "::error::Unexpected payload: $current"
+              exit 1
+            fi
+            expires=$(date -u -d "$expires_at" +%s)
+
+            if [[ -n "$origin" && "$origin" != "user" ]]; then
+              echo "Current limit ($limit) has origin '$origin' - not a user-level restriction. Doing nothing."
+            elif (( expires > ceiling )); then
+              echo "Current limit ($limit) expires $expires_at, beyond the weekend footprint (ceiling $(fmt "$ceiling")) - looks manual. Doing nothing."
+            else
+              echo "Removing weekend limit ($limit, would have expired $expires_at)."
+              gh api --silent --method DELETE user/interaction-limits
+              echo "Removed."
+            fi
+          fi
