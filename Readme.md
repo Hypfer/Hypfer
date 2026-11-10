@@ -22,3 +22,5 @@
 </details>
 
 If you're looking for a more conventional "about me" page, look here: [./About.md](./About.md)
+
+If the stuff I find interesting sounds interesting to you, my Web 1.0-ish link dump site thingy can be found here: [dump.hypfer.de](https://dump.hypfer.de)
